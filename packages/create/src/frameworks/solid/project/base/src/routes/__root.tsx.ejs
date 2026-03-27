@@ -1,0 +1,66 @@
+<% if (routerOnly) { %>
+import { Outlet, createRootRoute } from '@tanstack/solid-router'
+import { TanStackRouterDevtools } from '@tanstack/solid-router-devtools'
+
+import '../styles.css'
+
+export const Route = createRootRoute({
+  component: RootComponent,
+})
+
+function RootComponent() {
+  return (
+    <>
+      <Outlet />
+      <TanStackRouterDevtools position="bottom-right" />
+    </>
+  )
+}
+<% } else { %>
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/solid-router'
+import { TanStackRouterDevtools } from '@tanstack/solid-router-devtools'
+
+<% if (addOnEnabled['solid-ui']) { %>
+import "@fontsource/inter/400.css"
+<% } %>
+
+import { HydrationScript } from 'solid-js/web'
+import { Suspense } from 'solid-js'
+
+import Header from '../components/Header'
+<% for(const addOn of addOns) {
+  for(const init of addOn.main?.initialize || []) { %>
+  <%- init %>
+<% } } %>
+
+import styleCss from "../styles.css?url";
+
+export const Route = createRootRouteWithContext()({
+  head: () => ({
+    links: [{ rel: "stylesheet", href: styleCss }],
+  }),
+  shellComponent: RootComponent,
+})
+
+function RootComponent() {
+    return (
+      <html>
+        <head>
+          <HydrationScript />
+        </head>
+        <body>
+          <HeadContent />
+          <Suspense>
+            <Header />
+            <Outlet />
+            <TanStackRouterDevtools />
+            <% for(const integration of integrations.filter(i => i.type === 'layout')) { %>
+              <<%= integration.jsName %> />
+            <% } %>
+            </Suspense>
+          <Scripts />
+        </body>
+      </html>
+    );
+}
+<% } %>

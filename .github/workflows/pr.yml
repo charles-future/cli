@@ -1,0 +1,60 @@
+name: PR
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+
+permissions:
+  contents: read
+
+jobs:
+  test-unit:
+    name: Test (Unit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Tools
+        uses: tanstack/config/.github/setup@main
+      - name: Build
+        run: pnpm build
+      - name: Test Unit
+        run: pnpm test:unit
+  provenance:
+    name: Provenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+      - name: Check Provenance
+        uses: danielroe/provenance-action@v0.1.1
+        with:
+          fail-on-downgrade: true
+  test-e2e:
+    name: Test (E2E Blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Tools
+        uses: tanstack/config/.github/setup@main
+      - name: Get base and head commits for `nx affected`
+        uses: nrwl/nx-set-shas@v4.4.0
+        with:
+          main-branch-name: main
+      - name: Install Playwright Chrome
+        run: pnpm --filter @tanstack/cli exec playwright install --with-deps chrome
+      - name: Test E2E Blocking
+        run: pnpm nx affected --target=test:e2e --parallel=3

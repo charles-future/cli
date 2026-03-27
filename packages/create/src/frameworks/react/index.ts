@@ -1,0 +1,48 @@
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import {
+  registerFramework,
+  scanAddOnDirectories,
+  scanProjectDirectory,
+} from '../../frameworks.js'
+
+import type { FrameworkDefinition } from '../../types.js'
+
+export function createFrameworkDefinition(): FrameworkDefinition {
+  const baseDirectory = dirname(fileURLToPath(import.meta.url))
+
+  const addOns = scanAddOnDirectories([
+    join(baseDirectory, 'add-ons'),
+    join(baseDirectory, 'toolchains'),
+    join(baseDirectory, 'examples'),
+    join(baseDirectory, 'hosts'),
+  ])
+
+  const { files, basePackageJSON, optionalPackages } = scanProjectDirectory(
+    join(baseDirectory, 'project'),
+    join(baseDirectory, 'project/base'),
+  )
+
+  return {
+    id: 'react',
+    name: 'React',
+    description: 'Templates for React',
+    version: '0.1.0',
+    base: files,
+    addOns,
+    basePackageJSON,
+    optionalPackages,
+    supportedModes: {
+      'file-router': {
+        displayName: 'File Router',
+        description: 'TanStack Start with file-based routing',
+        forceTypescript: true,
+      },
+    },
+  }
+}
+
+export function register() {
+  registerFramework(createFrameworkDefinition())
+}
